@@ -68,11 +68,6 @@ def geocode_city_query(text: str, api_key: str) -> Optional[tuple[float, float]]
 @router.get("/places")
 def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] = None, lng: Optional[float] = None, limit: int = 15) -> dict:
     api_key = settings.GOOGLE_PLACES_API_KEY
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Google Places API key not configured in core settings"
-        )
 
     normalized_q = q.lower().strip()
     
@@ -98,7 +93,7 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
     generic_keywords = ["cafes", "cafe", "restaurants", "restaurant", "hotels", "hotel", "attractions", "attraction", "all", "more", ""]
     is_generic = normalized_q in generic_keywords
     
-    if not is_generic:
+    if not is_generic and api_key:
         resolved_coords = geocode_city_query(q, api_key)
         if resolved_coords:
             target_lat, target_lng = resolved_coords
@@ -123,7 +118,12 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
     elif category == "Attractions" or implied_monument:
         place_type = "tourist_attraction"
 
-    # 4. Fetch Places from Google Places API
+    transformed_results = []
+
+    # 4. Fetch Places from Google Places API (only if API key is configured)
+    if not api_key:
+        raise Exception("Google Places API key not configured, using AI fallback")
+
     places_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
     params = {
         "query": q if not is_generic else (place_type if place_type else "places of interest"),
@@ -134,8 +134,6 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
     if place_type:
         params["type"] = place_type
 
-    transformed_results = []
-    
     try:
         with httpx.Client(timeout=12.0) as client:
             response = client.get(places_url, params=params)
