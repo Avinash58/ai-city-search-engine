@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Sparkles, Sliders, Info, Heart, Mic, Navigation, Sun, Moon, Bell } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 interface LandingViewProps {
   onNavigate: (view: 'landing' | 'results' | 'signin' | 'dashboard', query?: string) => void;
@@ -92,7 +93,7 @@ export default function LandingView({ onNavigate }: LandingViewProps) {
     };
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user || null);
     });
 

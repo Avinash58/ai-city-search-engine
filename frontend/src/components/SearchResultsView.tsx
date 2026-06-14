@@ -25,6 +25,9 @@ import {
   Loader2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/// <reference path="../types/google-maps.d.ts" />
 
 interface SearchResultsViewProps {
   initialQuery?: string;
@@ -96,7 +99,7 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
     };
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user || null);
     });
 
@@ -417,7 +420,8 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
         });
 
         newMarkers.push(marker);
-        mapBounds.extend(marker.getPosition());
+        const markerPos = marker.getPosition();
+        if (markerPos) mapBounds.extend(markerPos);
         hasValidPoints = true;
       }
     });
@@ -440,7 +444,8 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
       });
 
       newMarkers.push(userPosMarker);
-      mapBounds.extend(userPosMarker.getPosition());
+      const userPosMarkerPos = userPosMarker.getPosition();
+      if (userPosMarkerPos) mapBounds.extend(userPosMarkerPos);
       hasValidPoints = true;
 
       // Center viewport smoothly on user present location coordinate

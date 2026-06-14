@@ -6,6 +6,7 @@ import SearchResultsView from '@/components/SearchResultsView';
 import SignInView from '@/components/SignInView';
 import DashboardView from '@/components/DashboardView';
 import { supabase } from '@/lib/supabaseClient';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 type ViewType = 'landing' | 'results' | 'signin' | 'dashboard';
 
@@ -52,7 +53,7 @@ export default function Home() {
     checkActiveSession();
 
     // 3. Setup real-time authentication event listener (crucial for Google OAuth redirects)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       console.log("Supabase Auth Event:", event);
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
         setCurrentView('dashboard');
