@@ -1,0 +1,531 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(226, 232, 240, 0.8);
+}
+
+@theme {
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Global Transitions for Premium Feel */
+* {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  background-color: #f6f8fa;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Glassmorphism Panel */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.03);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+/* Glassmorphism Card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.02);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .glass-card {
+  background: rgba(30, 41, 59, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25) !important;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.dark .glass-card:hover {
+  background: rgba(30, 41, 59, 0.55) !important;
+  border-color: rgba(129, 140, 248, 0.3) !important;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Micro-animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Gradient effects */
+.text-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-gradient-hero {
+  background: linear-gradient(to bottom, rgba(238, 242, 255, 0.7) 0%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+/* ==========================================================================
+   PREMIUM ANIMATED BACKGROUND SYSTEM (Chrome Wallpaper Style)
+   ========================================================================== */
+
+/* --- Aurora / Mesh Wave Animation --- */
+@keyframes aurora-shift {
+  0%   { transform: translate(0%, 0%) scale(1) rotate(0deg); }
+  25%  { transform: translate(3%, -4%) scale(1.05) rotate(2deg); }
+  50%  { transform: translate(-2%, 5%) scale(0.97) rotate(-3deg); }
+  75%  { transform: translate(-4%, -2%) scale(1.03) rotate(1deg); }
+  100% { transform: translate(0%, 0%) scale(1) rotate(0deg); }
+}
+
+@keyframes aurora-shift-reverse {
+  0%   { transform: translate(0%, 0%) scale(1.02) rotate(0deg); }
+  33%  { transform: translate(-5%, 3%) scale(0.95) rotate(-4deg); }
+  66%  { transform: translate(4%, -5%) scale(1.07) rotate(3deg); }
+  100% { transform: translate(0%, 0%) scale(1.02) rotate(0deg); }
+}
+
+@keyframes orb-float {
+  0%   { transform: translateY(0px) translateX(0px) scale(1); }
+  33%  { transform: translateY(-30px) translateX(15px) scale(1.08); }
+  66%  { transform: translateY(20px) translateX(-10px) scale(0.95); }
+  100% { transform: translateY(0px) translateX(0px) scale(1); }
+}
+
+@keyframes orb-float-alt {
+  0%   { transform: translateY(0px) translateX(0px) scale(1.05); }
+  40%  { transform: translateY(25px) translateX(-20px) scale(0.92); }
+  70%  { transform: translateY(-15px) translateX(25px) scale(1.1); }
+  100% { transform: translateY(0px) translateX(0px) scale(1.05); }
+}
+
+@keyframes shimmer-rotate {
+  0%   { transform: rotate(0deg) scale(1); opacity: 0.4; }
+  50%  { transform: rotate(180deg) scale(1.15); opacity: 0.7; }
+  100% { transform: rotate(360deg) scale(1); opacity: 0.4; }
+}
+
+@keyframes grid-pulse {
+  0%, 100% { opacity: 0.04; }
+  50%       { opacity: 0.10; }
+}
+
+@keyframes particle-drift {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  50%  { transform: translate(-20px, -35px) scale(1.3); opacity: 1; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+}
+
+@keyframes particle-drift-alt {
+  0%   { transform: translate(0, 0) scale(0.8); opacity: 0.4; }
+  60%  { transform: translate(25px, 20px) scale(1.2); opacity: 0.9; }
+  100% { transform: translate(0, 0) scale(0.8); opacity: 0.4; }
+}
+
+@keyframes conic-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes wave-horizontal {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* --- Chrome Wallpaper Hero Background --- */
+.hero-chrome-bg {
+  position: relative;
+  background: 
+    url('/chrome_gradient_wallpaper.png') center/cover no-repeat;
+  overflow: hidden;
+}
+
+/* Main aurora overlay that animates over the image */
+.hero-chrome-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(99,102,241,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 70% at 80% 20%, rgba(168,85,247,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 60% at 50% 90%, rgba(236,72,153,0.10) 0%, transparent 60%);
+  animation: aurora-shift 18s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Light mode scrim so text remains readable */
+.hero-chrome-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.55) 0%,
+    rgba(255,255,255,0.30) 50%,
+    rgba(255,255,255,0.70) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Dark mode scrim */
+.dark .hero-chrome-bg::after {
+  background: linear-gradient(
+    to bottom,
+    rgba(9,13,22,0.60) 0%,
+    rgba(9,13,22,0.30) 50%,
+    rgba(9,13,22,0.75) 100%
+  ) !important;
+}
+
+/* All hero content must sit above the pseudo-elements */
+.hero-chrome-bg > * {
+  position: relative;
+  z-index: 3;
+}
+
+/* --- Floating Glow Orbs (placed by JS-less CSS divs) --- */
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.bg-orb-1 {
+  width: 55vw;
+  height: 55vw;
+  top: -18%;
+  left: -12%;
+  background: radial-gradient(circle, rgba(99,102,241,0.30) 0%, rgba(139,92,246,0.15) 50%, transparent 70%);
+  animation: orb-float 20s ease-in-out infinite;
+}
+
+.bg-orb-2 {
+  width: 50vw;
+  height: 50vw;
+  top: 10%;
+  right: -15%;
+  background: radial-gradient(circle, rgba(236,72,153,0.25) 0%, rgba(168,85,247,0.12) 50%, transparent 70%);
+  animation: orb-float-alt 25s ease-in-out infinite;
+}
+
+.bg-orb-3 {
+  width: 40vw;
+  height: 40vw;
+  bottom: -10%;
+  left: 20%;
+  background: radial-gradient(circle, rgba(52,211,153,0.20) 0%, rgba(6,182,212,0.10) 50%, transparent 70%);
+  animation: orb-float 30s ease-in-out infinite reverse;
+}
+
+.bg-orb-4 {
+  width: 35vw;
+  height: 35vw;
+  bottom: 5%;
+  right: 10%;
+  background: radial-gradient(circle, rgba(251,146,60,0.15) 0%, rgba(251,191,36,0.08) 50%, transparent 70%);
+  animation: orb-float-alt 22s ease-in-out infinite reverse;
+}
+
+/* --- Animated Mesh Dot Grid --- */
+.mesh-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(99,102,241,0.35) 1px, transparent 1px);
+  background-size: 36px 36px;
+  animation: grid-pulse 6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* --- Floating Sparkle Particles --- */
+.sparkle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sparkle-1 {
+  width: 6px; height: 6px;
+  top: 15%; left: 18%;
+  background: rgba(167,139,250,0.9);
+  box-shadow: 0 0 12px 4px rgba(167,139,250,0.6);
+  animation: particle-drift 8s ease-in-out infinite;
+}
+.sparkle-2 {
+  width: 4px; height: 4px;
+  top: 30%; left: 75%;
+  background: rgba(236,72,153,0.9);
+  box-shadow: 0 0 10px 3px rgba(236,72,153,0.5);
+  animation: particle-drift-alt 11s ease-in-out infinite;
+}
+.sparkle-3 {
+  width: 5px; height: 5px;
+  top: 60%; left: 35%;
+  background: rgba(52,211,153,0.9);
+  box-shadow: 0 0 10px 3px rgba(52,211,153,0.5);
+  animation: particle-drift 14s ease-in-out infinite 2s;
+}
+.sparkle-4 {
+  width: 3px; height: 3px;
+  top: 20%; left: 55%;
+  background: rgba(251,191,36,0.9);
+  box-shadow: 0 0 8px 3px rgba(251,191,36,0.5);
+  animation: particle-drift-alt 9s ease-in-out infinite 1s;
+}
+.sparkle-5 {
+  width: 5px; height: 5px;
+  top: 70%; left: 80%;
+  background: rgba(99,102,241,0.9);
+  box-shadow: 0 0 12px 4px rgba(99,102,241,0.5);
+  animation: particle-drift 16s ease-in-out infinite 3s;
+}
+.sparkle-6 {
+  width: 4px; height: 4px;
+  top: 45%; left: 10%;
+  background: rgba(217,70,239,0.9);
+  box-shadow: 0 0 10px 3px rgba(217,70,239,0.5);
+  animation: particle-drift-alt 12s ease-in-out infinite 0.5s;
+}
+
+/* --- Conic Gradient Shimmer Ring (large decorative) --- */
+.conic-ring {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.07;
+  background: conic-gradient(
+    from 0deg,
+    #6366f1, #a855f7, #ec4899, #f59e0b, #10b981, #06b6d4, #6366f1
+  );
+  animation: conic-spin 30s linear infinite;
+}
+
+.conic-ring-1 {
+  width: 90vw;
+  height: 90vw;
+  top: -30%;
+  left: -20%;
+}
+
+.conic-ring-2 {
+  width: 60vw;
+  height: 60vw;
+  bottom: -20%;
+  right: -15%;
+  animation-direction: reverse;
+  animation-duration: 40s;
+  opacity: 0.05;
+}
+
+/* Dark mode orb intensity boost */
+.dark .bg-orb-1 {
+  background: radial-gradient(circle, rgba(99,102,241,0.45) 0%, rgba(139,92,246,0.25) 50%, transparent 70%);
+}
+.dark .bg-orb-2 {
+  background: radial-gradient(circle, rgba(236,72,153,0.40) 0%, rgba(168,85,247,0.20) 50%, transparent 70%);
+}
+.dark .bg-orb-3 {
+  background: radial-gradient(circle, rgba(52,211,153,0.30) 0%, rgba(6,182,212,0.15) 50%, transparent 70%);
+}
+.dark .bg-orb-4 {
+  background: radial-gradient(circle, rgba(251,146,60,0.25) 0%, rgba(251,191,36,0.12) 50%, transparent 70%);
+}
+.dark .mesh-grid {
+  background-image: radial-gradient(circle, rgba(99,102,241,0.50) 1px, transparent 1px);
+}
+.dark .conic-ring {
+  opacity: 0.12;
+}
+
+
+/* ==========================================================================
+   ULTRA-PREMIUM DARK THEME OVERLAYS
+   ========================================================================== */
+
+.dark {
+  --background: #090d16;
+  --foreground: #f8fafc;
+  --card-bg: rgba(18, 24, 38, 0.85);
+  --card-border: rgba(30, 41, 59, 0.8);
+}
+
+.dark body {
+  background-color: #090d16 !important;
+  color: #f8fafc !important;
+}
+
+/* Structural Components Overrides */
+.dark .bg-white {
+  background-color: #121826 !important; /* Lighter navy for sidebar/header */
+}
+
+.dark .bg-slate-50 {
+  background-color: #090d16 !important; /* Deepest dark blue for workspace background */
+}
+
+.dark .bg-slate-50\/30 {
+  background-color: rgba(9, 13, 22, 0.3) !important;
+}
+
+.dark .bg-slate-50\/70 {
+  background-color: rgba(18, 24, 38, 0.7) !important;
+}
+
+.dark .hover\:bg-slate-50:hover, 
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-slate-100\/80:hover {
+  background-color: #1e293b !important;
+}
+
+.dark .hover\:bg-indigo-50\/50:hover {
+  background-color: rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Borders */
+.dark .border-slate-100, 
+.dark .border-slate-200 {
+  border-color: #1e293b !important;
+}
+
+/* Foreground Text Overrides */
+.dark .text-slate-900 {
+  color: #ffffff !important;
+}
+
+.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-slate-700, 
+.dark .text-slate-650, 
+.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Interactive elements */
+.dark input {
+  color: #ffffff !important;
+  background-color: #161d2d !important;
+  border-color: #2e3c56 !important;
+}
+
+.dark input::placeholder {
+  color: #475569 !important;
+}
+
+.dark .focus-within\:bg-white:focus-within {
+  background-color: #161d2d !important;
+}
+
+/* Sidebar navigation */
+.dark .text-slate-500:hover {
+  color: #818cf8 !important;
+}
+
+/* Cards & Modals styling */
+.dark .shadow-xs,
+.dark .shadow-sm,
+.dark .shadow-md {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .bg-indigo-50\/50 {
+  background-color: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark .text-indigo-900 {
+  color: #e0e7ff !important;
+}
+
+.dark .text-indigo-850 {
+  color: #c7d2fe !important;
+}
+
+.dark .bg-gradient-hero {
+  background: linear-gradient(to bottom, #090d16 0%, #121826 100%) !important;
+}
+
+.dark .bg-indigo-900 {
+  background-color: #1a1e36 !important;
+}
+
+/* AI message styles */
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
