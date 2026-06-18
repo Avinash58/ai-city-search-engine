@@ -437,91 +437,91 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
                         ai_data = json.loads(cleaned_text)
                         results = ai_data.get("places", [])[:limit]
                     
-                    # Transform the AI generated results to match our format
-                    for res in results:
-                        place_id = res.get("name", "")
-                        hash_val = abs(hash(place_id))
-                        
-                        name = res.get("name", "Unknown Place")
-                        address = res.get("formatted_address", "City Center Location")
-                        
-                        geom = res.get("geometry", {}).get("location", {})
-                        place_lat = geom.get("lat")
-                        place_lon = geom.get("lng")
-                        
-                        rating = res.get("rating", round(4.2 + (hash_val % 8) * 0.1, 1))
-                        user_ratings_total = res.get("user_ratings_total", 0)
-                        
-                        price_level = res.get("price_level")
-                        if price_level is not None:
-                            price = "$" * max(1, price_level)
-                        else:
-                            price_opts = ["$", "$$", "$$$", "$$$$"]
-                            price = price_opts[hash_val % len(price_opts)]
-                        
-                        status_opts = ["Open Now", "Open • Closes 11 PM", "Open • 24 Hours"]
-                        status_str = status_opts[hash_val % len(status_opts)]
-                        
-                        types = res.get("types", [])
-                        place_cat = "Restaurants"
-                        photo_key = "restaurant"
-                        derived_tags = []
-                        
-                        if "school" in types or "education" in types:
-                            place_cat = "More"
-                            photo_key = "attraction"
-                            derived_tags = ["Education", "School"]
-                        elif "cafe" in types:
-                            place_cat = "Restaurants"
-                            photo_key = "cafe"
-                            derived_tags = ["Cafe", "Coffee"]
-                        elif "restaurant" in types or "food" in types:
+                        # Transform the AI generated results to match our format
+                        for res in results:
+                            place_id = res.get("name", "")
+                            hash_val = abs(hash(place_id))
+                            
+                            name = res.get("name", "Unknown Place")
+                            address = res.get("formatted_address", "City Center Location")
+                            
+                            geom = res.get("geometry", {}).get("location", {})
+                            place_lat = geom.get("lat")
+                            place_lon = geom.get("lng")
+                            
+                            rating = res.get("rating", round(4.2 + (hash_val % 8) * 0.1, 1))
+                            user_ratings_total = res.get("user_ratings_total", 0)
+                            
+                            price_level = res.get("price_level")
+                            if price_level is not None:
+                                price = "$" * max(1, price_level)
+                            else:
+                                price_opts = ["$", "$$", "$$$", "$$$$"]
+                                price = price_opts[hash_val % len(price_opts)]
+                            
+                            status_opts = ["Open Now", "Open • Closes 11 PM", "Open • 24 Hours"]
+                            status_str = status_opts[hash_val % len(status_opts)]
+                            
+                            types = res.get("types", [])
                             place_cat = "Restaurants"
                             photo_key = "restaurant"
-                            derived_tags = ["Restaurant", "Gourmet"]
-                        elif "lodging" in types or "hotel" in types:
-                            place_cat = "Hotels"
-                            photo_key = "hotel"
-                            derived_tags = ["Luxury", "Hotel"]
-                        else:
-                            place_cat = "Attractions"
-                            photo_key = "attraction"
-                            derived_tags = ["Attraction", "Local"]
+                            derived_tags = []
                             
-                        available_photos = UNSPLASH_PHOTOS.get(photo_key, UNSPLASH_PHOTOS["restaurant"])
-                        image_url = available_photos[hash_val % len(available_photos)]
+                            if "school" in types or "education" in types:
+                                place_cat = "More"
+                                photo_key = "attraction"
+                                derived_tags = ["Education", "School"]
+                            elif "cafe" in types:
+                                place_cat = "Restaurants"
+                                photo_key = "cafe"
+                                derived_tags = ["Cafe", "Coffee"]
+                            elif "restaurant" in types or "food" in types:
+                                place_cat = "Restaurants"
+                                photo_key = "restaurant"
+                                derived_tags = ["Restaurant", "Gourmet"]
+                            elif "lodging" in types or "hotel" in types:
+                                place_cat = "Hotels"
+                                photo_key = "hotel"
+                                derived_tags = ["Luxury", "Hotel"]
+                            else:
+                                place_cat = "Attractions"
+                                photo_key = "attraction"
+                                derived_tags = ["Attraction", "Local"]
+                                
+                            available_photos = UNSPLASH_PHOTOS.get(photo_key, UNSPLASH_PHOTOS["restaurant"])
+                            image_url = available_photos[hash_val % len(available_photos)]
+                            
+                            dist_km = None
+                            if user_coords and place_lat and place_lon:
+                                dist_km = round(get_haversine_distance(user_coords[0], user_coords[1], place_lat, place_lon), 1)
+
+                            desc = f"A premium highly rated {photo_key} spot to explore. Recommended by AI."
+
+                            transformed_results.append({
+                                "name": name,
+                                "category": place_cat,
+                                "rating": rating,
+                                "address": address,
+                                "desc": desc,
+                                "price": price,
+                                "status": status_str,
+                                "website": "",
+                                "phone": "",
+                                "tags": derived_tags,
+                                "image": image_url,
+                                "lat": place_lat,
+                                "lng": place_lon,
+                                "distance_km": dist_km
+                            })
                         
-                        dist_km = None
-                        if user_coords and place_lat and place_lon:
-                            dist_km = round(get_haversine_distance(user_coords[0], user_coords[1], place_lat, place_lon), 1)
-
-                        desc = f"A premium highly rated {photo_key} spot to explore. Recommended by AI."
-
-                        transformed_results.append({
-                            "name": name,
-                            "category": place_cat,
-                            "rating": rating,
-                            "address": address,
-                            "desc": desc,
-                            "price": price,
-                            "status": status_str,
-                            "website": "",
-                            "phone": "",
-                            "tags": derived_tags,
-                            "image": image_url,
-                            "lat": place_lat,
-                            "lng": place_lon,
-                            "distance_km": dist_km
-                        })
-                    
-                    return {
-                        "query": q,
-                        "category": category,
-                        "results": sorted(transformed_results, key=lambda p: p.get("distance_km", 999999)) if user_coords else transformed_results,
-                        "limit": limit,
-                        "count": len(transformed_results),
-                        "ai_summary": ai_data.get("ai_summary", "")
-                    }
+                        return {
+                            "query": q,
+                            "category": category,
+                            "results": sorted(transformed_results, key=lambda p: p.get("distance_km", 999999)) if user_coords else transformed_results,
+                            "limit": limit,
+                            "count": len(transformed_results),
+                            "ai_summary": ai_data.get("ai_summary", "")
+                        }
             except Exception as ai_e:
                 print("Gemini AI fallback exception:", ai_e)
 
