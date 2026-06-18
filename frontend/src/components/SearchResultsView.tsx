@@ -38,6 +38,9 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
   const [query, setQuery] = useState(initialQuery);
   const [activeCategory, setActiveCategory] = useState('All');
   const [savedPlaces, setSavedPlaces] = useState<string[]>(['Karim\'s']);
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeSort, setActiveSort] = useState('rating');
+  const [filterOpenNow, setFilterOpenNow] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     { sender: 'ai', text: 'Hello! I can help you find details about restaurants, hotels, or attractions in India. What are you looking for?' }
@@ -844,11 +847,62 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
                   </button>
                 ))}
               </div>
-              <button className="flex items-center gap-2 glass-card border border-slate-200/50 hover:border-indigo-150 font-bold text-xs text-slate-650 dark:text-slate-300 px-4.5 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer">
-                <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
-                <span>Filters</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 glass-card border font-bold text-xs px-4.5 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer ${
+                    showFilters
+                      ? 'border-indigo-300 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40'
+                      : 'border-slate-200/50 hover:border-indigo-150 text-slate-650 dark:text-slate-300'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+                  <span>Filters</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                </button>
+                {showFilters && (
+                  <div className="absolute right-0 top-12 z-50 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/50 dark:border-slate-800 p-4 flex flex-col gap-4">
+                    <div>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sort By</p>
+                      <div className="flex flex-col gap-1">
+                        {[['rating', '⭐ Top Rated'], ['distance', '📍 Nearest First'], ['price_low', '💰 Price: Low to High'], ['price_high', '💎 Price: High to Low']].map(([val, label]) => (
+                          <button
+                            key={val}
+                            onClick={() => setActiveSort(val)}
+                            className={`text-left text-sm px-3 py-2 rounded-xl transition-all cursor-pointer ${
+                              activeSort === val
+                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Status</p>
+                      <button
+                        onClick={() => setFilterOpenNow(!filterOpenNow)}
+                        className={`flex items-center gap-2 text-sm px-3 py-2 rounded-xl transition-all cursor-pointer w-full ${
+                          filterOpenNow
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${filterOpenNow ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        Open Now Only
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => { setActiveSort('rating'); setFilterOpenNow(false); setShowFilters(false); }}
+                      className="text-xs text-slate-400 hover:text-red-500 transition-colors cursor-pointer text-left"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Results Title Info */}
