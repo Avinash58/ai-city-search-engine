@@ -358,3 +358,24 @@ def get_recommendations(email: str, db: Session = Depends(get_db)):
         {"title": "Special Offers", "desc": "Unlock 20% off at premium restaurants based on your reviews.", "action": "Claim Offer", "bg": "bg-emerald-100 dark:bg-emerald-900/30", "text": "text-emerald-800 dark:text-emerald-300"}
     ]
     return {"recommendations": recommendations}
+
+@router.get("/is_admin")
+def check_user_admin(email: str, db: Session = Depends(get_db)):
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+        
+    user = db.execute(select(User).where(User.email == email)).scalars().first()
+    if not user:
+        # Lazy sync user from Supabase to local PostgreSQL DB
+        is_admin_user = email.strip().lower().startswith("admin@") or "admin" in email.strip().lower().split("@")[0]
+        user = User(
+            email=email,
+            name=email.split("@")[0],
+            is_email_verified=True,
+            is_admin=is_admin_user
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+    return {"is_admin": user.is_admin}

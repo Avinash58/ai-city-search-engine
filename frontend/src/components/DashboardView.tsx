@@ -26,7 +26,7 @@ import {
 import { supabase } from '@/lib/supabaseClient';
 
 interface DashboardViewProps {
-  onNavigate: (view: 'landing' | 'results' | 'signin' | 'dashboard', query?: string) => void;
+  onNavigate: (view: 'landing' | 'results' | 'signin' | 'dashboard' | 'admin', query?: string) => void;
 }
 
 export default function DashboardView({ onNavigate }: DashboardViewProps) {
@@ -40,9 +40,17 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (userEmail) {
+      fetch(`/api/v1/user/is_admin?email=${encodeURIComponent(userEmail)}`)
+        .then(res => res.json())
+        .then(data => {
+          setIsAdmin(data.is_admin || false);
+        })
+        .catch(err => console.error("Failed to check admin status:", err));
+
       fetch(`/api/v1/user/notifications?email=${encodeURIComponent(userEmail)}`)
         .then(res => res.json())
         .then(data => {
@@ -302,6 +310,15 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
               <User className="w-4.5 h-4.5" />
               <span>Profile Page</span>
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => onNavigate('admin')}
+                className="flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-rose-600 hover:bg-rose-50/50 text-sm font-extrabold transition-all cursor-pointer border border-rose-100/30 bg-rose-50/10"
+              >
+                <Settings className="w-4.5 h-4.5" />
+                <span>Admin Console</span>
+              </button>
+            )}
           </nav>
         </div>
 

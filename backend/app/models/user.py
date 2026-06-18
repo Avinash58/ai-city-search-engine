@@ -13,6 +13,7 @@ class User(Base):
 
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_email_verified: Mapped[bool] = mapped_column(default=False)
+    is_admin: Mapped[bool] = mapped_column(default=False)
 
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

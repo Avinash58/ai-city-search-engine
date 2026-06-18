@@ -5,14 +5,16 @@ import LandingView from '@/components/LandingView';
 import SearchResultsView from '@/components/SearchResultsView';
 import SignInView from '@/components/SignInView';
 import DashboardView from '@/components/DashboardView';
+import AdminView from '@/components/AdminView';
 import { supabase } from '@/lib/supabaseClient';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
-type ViewType = 'landing' | 'results' | 'signin' | 'dashboard';
+type ViewType = 'landing' | 'results' | 'signin' | 'dashboard' | 'admin';
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<ViewType>('landing');
   const [searchQuery, setSearchQuery] = useState('best restaurants in delhi');
+  const [userEmail, setUserEmail] = useState<string>('');
 
   useEffect(() => {
     // 0. Sync theme on load to prevent visual flashing
@@ -30,7 +32,7 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get('view') as ViewType;
-      if (viewParam && ['landing', 'results', 'signin', 'dashboard'].includes(viewParam)) {
+      if (viewParam && ['landing', 'results', 'signin', 'dashboard', 'admin'].includes(viewParam)) {
         setCurrentView(viewParam);
       }
       const qParam = params.get('q');
@@ -44,7 +46,8 @@ export default function Home() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          setCurrentView('dashboard');
+          setCurrentView(currentView === 'landing' ? 'dashboard' : currentView);
+          setUserEmail(session.user?.email || '');
         }
       } catch (err) {
         console.error("Session fetch failed:", err);
@@ -56,9 +59,12 @@ export default function Home() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       console.log("Supabase Auth Event:", event);
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-        setCurrentView('dashboard');
+        // Only override landing to dashboard, if they navigated to another view keep it
+        setCurrentView(prev => prev === 'landing' ? 'dashboard' : prev);
+        setUserEmail(session.user?.email || '');
       } else if (event === 'SIGNED_OUT') {
         setCurrentView('landing');
+        setUserEmail('');
       }
     });
 
@@ -68,7 +74,7 @@ export default function Home() {
   }, []);
 
   const handleNavigation = (view: ViewType, query?: string) => {
-    if (query && view !== 'dashboard') {
+    if (query && view !== 'dashboard' && view !== 'admin') {
       setSearchQuery(query);
     }
     setCurrentView(view);
@@ -126,6 +132,9 @@ export default function Home() {
         )}
         {currentView === 'dashboard' && (
           <DashboardView onNavigate={handleNavigation} />
+        )}
+        {currentView === 'admin' && (
+          <AdminView userEmail={userEmail} onNavigate={handleNavigation} />
         )}
       </div>
     </main>
