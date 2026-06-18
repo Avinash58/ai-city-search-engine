@@ -77,6 +77,7 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
         user_coords = (lat, lng)
         
     # Check if query explicitly overrides via 'gps:lat,lng'
+    search_term = q
     if normalized_q.startswith("gps:"):
         try:
             parts = normalized_q.replace("gps:", "").split(",")
@@ -84,14 +85,28 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
             gps_lng = float(parts[1])
             user_coords = (gps_lat, gps_lng)
             lat, lng = gps_lat, gps_lng
+            
+            # Rewrite search_term to be something meaningful based on category
+            if category == "Restaurants":
+                search_term = "restaurants"
+            elif category == "Hotels":
+                search_term = "hotels"
+            elif category == "Attractions":
+                search_term = "tourist attractions"
+            else:
+                search_term = "places of interest"
         except Exception:
             pass
 
     # 2. Determine target coordinate center point for search
     target_lat, target_lng = lat, lng
     
-    generic_keywords = ["cafes", "cafe", "restaurants", "restaurant", "hotels", "hotel", "attractions", "attraction", "all", "more", ""]
-    is_generic = normalized_q in generic_keywords
+    generic_keywords = [
+        "cafes", "cafe", "restaurants", "restaurant", "hotels", "hotel", 
+        "attractions", "attraction", "all", "more", "near me", "current location", 
+        "gps", "places near me", "places of interest", ""
+    ]
+    is_generic = normalized_q in generic_keywords or normalized_q.startswith("gps:")
     
     if not is_generic and api_key:
         resolved_coords = geocode_city_query(q, api_key)
@@ -104,7 +119,7 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
     lat, lng = target_lat, target_lng
 
     # 3. Map Frontend Category selection to Google Place Types
-    query_lower = q.lower()
+    query_lower = search_term.lower()
     implied_cafe = "cafe" in query_lower or "cafes" in query_lower or "coffee" in query_lower
     implied_food = "restaurant" in query_lower or "restaurants" in query_lower or "food" in query_lower or "dining" in query_lower
     implied_hotel = "hotel" in query_lower or "hotels" in query_lower or "resort" in query_lower
@@ -235,6 +250,159 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
                     })
     except Exception as e:
         print("Google Places API dynamic search exception:", e)
+        # Try Gemini AI first as it supports structured outputs and is highly reliable
+        if settings.GEMINI_API_KEY:
+            try:
+                import json
+                from google.genai import types
+                
+                client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                prompt = f"""
+                You are a premium travel guide and local expert.
+                Generate a list of 5-8 real, accurate, and popular places matching the query '{search_term}' near latitude {lat}, longitude {lng}.
+                If latitude and longitude represent a generic default location, resolve the actual coordinates for the searched area or city.
+                
+                For each place, provide:
+                1. The real and exact name of the place.
+                2. A real and accurate street address.
+                3. The true latitude and longitude coordinates.
+                4. A realistic rating (3.0 to 5.0) and number of ratings.
+                5. An accurate price level (1 to 4).
+                6. The primary category types (e.g. ["cafe"], ["restaurant"], ["tourist_attraction"], ["lodging"]).
+                7. A highly detailed and informative 2-3 sentence description of the place, detailing its history, what it is known for, signature dishes, or key amenities.
+                
+                Also resolve the name of the neighborhood/city corresponding to the latitude {lat} and longitude {lng} (e.g. 'Connaught Place, New Delhi') in 'resolved_location'.
+                And provide a 3-4 sentence engaging travel summary overview about this area and search query in 'ai_summary'.
+                """
+                
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema={
+                            "type": "OBJECT",
+                            "properties": {
+                                "resolved_location": {"type": "STRING"},
+                                "ai_summary": {"type": "STRING"},
+                                "places": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "name": {"type": "STRING"},
+                                            "formatted_address": {"type": "STRING"},
+                                            "rating": {"type": "NUMBER"},
+                                            "user_ratings_total": {"type": "INTEGER"},
+                                            "price_level": {"type": "INTEGER"},
+                                            "types": {
+                                                "type": "ARRAY",
+                                                "items": {"type": "STRING"}
+                                            },
+                                            "lat": {"type": "NUMBER"},
+                                            "lng": {"type": "NUMBER"},
+                                            "desc": {"type": "STRING"}
+                                        },
+                                        "required": ["name", "formatted_address", "rating", "user_ratings_total", "price_level", "types", "lat", "lng", "desc"]
+                                    }
+                                }
+                            },
+                            "required": ["resolved_location", "ai_summary", "places"]
+                        }
+                    )
+                )
+                
+                if response.text:
+                    ai_data = json.loads(response.text)
+                    results = ai_data.get("places", [])[:limit]
+                    
+                    for res in results:
+                        place_id = res.get("name", "")
+                        hash_val = abs(hash(place_id))
+                        
+                        name = res.get("name", "Unknown Place")
+                        address = res.get("formatted_address", "City Center Location")
+                        
+                        place_lat = res.get("lat")
+                        place_lon = res.get("lng")
+                        
+                        rating = res.get("rating", round(4.2 + (hash_val % 8) * 0.1, 1))
+                        user_ratings_total = res.get("user_ratings_total", 0)
+                        
+                        price_level = res.get("price_level")
+                        if price_level is not None:
+                            price = "$" * max(1, price_level)
+                        else:
+                            price_opts = ["$", "$$", "$$$", "$$$$"]
+                            price = price_opts[hash_val % len(price_opts)]
+                        
+                        status_opts = ["Open Now", "Open • Closes 11 PM", "Open • 24 Hours"]
+                        status_str = status_opts[hash_val % len(status_opts)]
+                        
+                        types = res.get("types", [])
+                        place_cat = "Restaurants"
+                        photo_key = "restaurant"
+                        derived_tags = []
+                        
+                        if "school" in types or "education" in types:
+                            place_cat = "More"
+                            photo_key = "attraction"
+                            derived_tags = ["Education", "School"]
+                        elif "cafe" in types:
+                            place_cat = "Restaurants"
+                            photo_key = "cafe"
+                            derived_tags = ["Cafe", "Coffee"]
+                        elif "restaurant" in types or "food" in types:
+                            place_cat = "Restaurants"
+                            photo_key = "restaurant"
+                            derived_tags = ["Restaurant", "Gourmet"]
+                        elif "lodging" in types or "hotel" in types:
+                            place_cat = "Hotels"
+                            photo_key = "hotel"
+                            derived_tags = ["Luxury", "Hotel"]
+                        else:
+                            place_cat = "Attractions"
+                            photo_key = "attraction"
+                            derived_tags = ["Attraction", "Local"]
+                            
+                        available_photos = UNSPLASH_PHOTOS.get(photo_key, UNSPLASH_PHOTOS["restaurant"])
+                        image_url = available_photos[hash_val % len(available_photos)]
+                        
+                        dist_km = None
+                        if user_coords and place_lat and place_lon:
+                            dist_km = round(get_haversine_distance(user_coords[0], user_coords[1], place_lat, place_lon), 1)
+
+                        desc = res.get("desc", f"A premium highly rated {photo_key} spot to explore. Recommended by AI.")
+
+                        transformed_results.append({
+                            "name": name,
+                            "category": place_cat,
+                            "rating": rating,
+                            "address": address,
+                            "desc": desc,
+                            "price": price,
+                            "status": status_str,
+                            "website": res.get("website", ""),
+                            "phone": res.get("phone", ""),
+                            "tags": derived_tags,
+                            "image": image_url,
+                            "lat": place_lat,
+                            "lng": place_lon,
+                            "distance_km": dist_km
+                        })
+                    
+                    return {
+                        "query": q,
+                        "category": category,
+                        "results": sorted(transformed_results, key=lambda p: p.get("distance_km", 999999)) if user_coords else transformed_results,
+                        "limit": limit,
+                        "count": len(transformed_results),
+                        "ai_summary": ai_data.get("ai_summary", ""),
+                        "resolved_location": ai_data.get("resolved_location", "")
+                    }
+            except Exception as gemini_e:
+                print("Gemini AI fallback exception inside search places:", gemini_e)
+
         # Fallback to OpenRouter API for generating places
         if settings.OPENROUTER_API_KEY:
             try:

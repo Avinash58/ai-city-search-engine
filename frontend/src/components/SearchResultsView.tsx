@@ -127,6 +127,7 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [lastResolvedLocation, setLastResolvedLocation] = useState<string | null>(null);
 
   // Live Query Results State
   const [results, setResults] = useState<any[]>([]);
@@ -155,10 +156,12 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
           setUserCoords({ lat, lng });
         }
       }
+    } else if (lastResolvedLocation && query === lastResolvedLocation) {
+      // Do nothing, keep userCoords since we resolved this location
     } else {
       setUserCoords(null);
     }
-  }, [query]);
+  }, [query, lastResolvedLocation]);
 
   // Haversine formula calculation for relative card distance badges
   const getDistanceString = (place: any) => {
@@ -195,6 +198,11 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
         const data = await res.json();
         setResults(data.results || []);
         setAiSummary(data.ai_summary || '');
+
+        if (data.resolved_location && searchQuery.startsWith('gps:')) {
+          setLastResolvedLocation(data.resolved_location);
+          setQuery(data.resolved_location);
+        }
         
         // Log search query in the database for the active user
         try {
