@@ -250,16 +250,15 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
                         "Content-Type": "application/json",
                     },
                     data=json.dumps({
-                        "model": "openai/gpt-oss-120b:free",
+                        "model": "meta-llama/llama-3.1-8b-instruct:free",
                         "messages": [
                             {
                                 "role": "user",
                                 "content": prompt
                             }
-                        ],
-                        "reasoning": {"enabled": True}
+                        ]
                     }),
-                    timeout=15.0
+                    timeout=20.0
                 )
                 
                 if response.status_code == 200:
