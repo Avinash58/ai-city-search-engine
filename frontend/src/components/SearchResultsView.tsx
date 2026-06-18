@@ -134,11 +134,10 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
   const [isLoadingResults, setIsLoadingResults] = useState(false);
   const [aiSummary, setAiSummary] = useState<string>('');
 
-  // Google Maps SDK States
-  const [mapInstance, setMapInstance] = useState<any>(null);
-  const [mapMarkers, setMapMarkers] = useState<any[]>([]);
-  const [infoWindowInstance, setInfoWindowInstance] = useState<any>(null);
-  const [isGoogleMapsReady, setIsGoogleMapsReady] = useState(false);
+  // Leaflet Map SDK States
+  const [leafletMap, setLeafletMap] = useState<any>(null);
+  const [leafletMarkers, setLeafletMarkers] = useState<any[]>([]);
+  const [isLeafletReady, setIsLeafletReady] = useState(false);
 
   // Sync query if initialQuery changes from parent coordinate triggers
   useEffect(() => {
@@ -276,205 +275,163 @@ export default function SearchResultsView({ initialQuery = 'best restaurants in 
     fetchBackendSearch(query, activeCategory);
   };
 
-  // Google Maps script dynamic initializer
+  // Leaflet Map script dynamic initializer
   useEffect(() => {
-    // Intercept Google Maps BillingNotEnabled console error triggers to prevent Next.js red dev overlay popup modals!
-    const originalConsoleError = console.error;
-    console.error = (...args: any[]) => {
-      const msg = args.join(' ');
-      if (msg.includes('BillingNotEnabledMapError') || msg.includes('BillingNotEnabled') || msg.includes('developers.google.com/maps')) {
-        console.warn("[Suppressed Google Map Warning]: Google Maps billing is inactive. Operating in sandbox development mockup mode.");
-        return;
-      }
-      originalConsoleError.apply(console, args);
-    };
+    // 1. Inject Leaflet CSS
+    const cssId = 'leaflet-css';
+    if (!document.getElementById(cssId)) {
+      const link = document.createElement('link');
+      link.id = cssId;
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+      link.crossOrigin = '';
+      document.head.appendChild(link);
+    }
 
-    // Intercept native browser alert dialogs triggered by Google Maps key errors
-    const originalAlert = window.alert;
-    window.alert = (msg: any) => {
-      if (msg && (msg.toString().includes('Google Maps') || msg.toString().includes('load Google Maps correctly'))) {
-        console.warn("[Suppressed Google Map Alert Dialog]:", msg);
-        return;
-      }
-      originalAlert(msg);
-    };
-
-    // Override global map auth failure handler
-    (window as any).gm_authFailure = () => {
-      console.warn("Google Maps JS Auth Failure callback triggered. Overriding default alert popups.");
-    };
-
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBtJO6gR0d_SaFkfVCFS7GeL9FjuJ9s29o';
-    const scriptId = 'google-maps-api-loader';
+    // 2. Inject Leaflet JS
+    const scriptId = 'leaflet-js';
     let scriptElement = document.getElementById(scriptId) as HTMLScriptElement;
 
     const setupMapInstance = () => {
       const mapCanvas = document.getElementById('google-map-canvas');
-      if (!mapCanvas || !window.google) return;
+      if (!mapCanvas || !(window as any).L) return;
 
-      // Custom aesthetic minimal silver style for our map
-      const premiumStyles = [
-        {
-          "elementType": "geometry",
-          "stylers": [{ "color": "#f8fafc" }] // Slate-50 background tint
-        },
-        {
-          "elementType": "labels.icon",
-          "stylers": [{ "visibility": "off" }]
-        },
-        {
-          "elementType": "labels.text.fill",
-          "stylers": [{ "color": "#64748b" }]
-        },
-        {
-          "elementType": "labels.text.stroke",
-          "stylers": [{ "color": "#ffffff" }]
-        },
-        {
-          "featureType": "water",
-          "elementType": "geometry",
-          "stylers": [{ "color": "#e2e8f0" }] // Slate-200 tint
-        },
-        {
-          "featureType": "road",
-          "elementType": "geometry",
-          "stylers": [{ "color": "#ffffff" }]
-        },
-        {
-          "featureType": "road.highway",
-          "elementType": "geometry",
-          "stylers": [{ "color": "#cbd5e1" }]
-        }
-      ];
+      const L = (window as any).L;
+      const centerCoord = userCoords || { lat: 28.6139, lng: 77.2090 };
+      
+      try {
+        const mapObj = L.map(mapCanvas, {
+          zoomControl: false,
+          attributionControl: false
+        }).setView([centerCoord.lat, centerCoord.lng], 12);
 
-      const delhiCoordinates = { lat: 28.6139, lng: 77.2090 };
-      const mapObj = new google.maps.Map(mapCanvas, {
-        center: delhiCoordinates,
-        zoom: 12,
-        styles: premiumStyles,
-        disableDefaultUI: true,
-        zoomControl: true,
-        gestureHandling: 'cooperative'
-      });
+        L.control.zoom({
+          position: 'topright'
+        }).addTo(mapObj);
 
-      const infoWindowObj = new google.maps.InfoWindow();
-
-      setMapInstance(mapObj);
-      setInfoWindowInstance(infoWindowObj);
-      setIsGoogleMapsReady(true);
+        setLeafletMap(mapObj);
+        setIsLeafletReady(true);
+      } catch (err) {
+        console.warn("Leaflet double-init prevented or map load failed:", err);
+      }
     };
 
     if (!scriptElement) {
       scriptElement = document.createElement('script');
       scriptElement.id = scriptId;
-      scriptElement.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-      scriptElement.async = true;
-      scriptElement.defer = true;
+      scriptElement.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      scriptElement.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+      scriptElement.crossOrigin = '';
       scriptElement.onload = () => {
         setupMapInstance();
       };
       document.head.appendChild(scriptElement);
-    } else if (window.google) {
+    } else if ((window as any).L) {
       setupMapInstance();
     }
 
     return () => {
-      console.error = originalConsoleError;
-      window.alert = originalAlert;
-      delete (window as any).gm_authFailure;
+      // Clean up map instance if needed
     };
   }, []);
 
+  // Update dynamic Leaflet Map Tiles depending on dark mode state
+  useEffect(() => {
+    if (!leafletMap || !isLeafletReady || !(window as any).L) return;
+    const L = (window as any).L;
+
+    // Remove existing tile layers
+    leafletMap.eachLayer((layer: any) => {
+      if (layer instanceof L.TileLayer) {
+        layer.remove();
+      }
+    });
+
+    const tileUrl = isDarkMode
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+    L.tileLayer(tileUrl, {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(leafletMap);
+  }, [leafletMap, isLeafletReady, isDarkMode]);
+
   // Update dynamic map markers whenever results list or userCoords GPS state updates
   useEffect(() => {
-    if (!mapInstance || !isGoogleMapsReady) return;
+    if (!leafletMap || !isLeafletReady || !(window as any).L) return;
+    const L = (window as any).L;
 
     // Remove old active markers
-    mapMarkers.forEach(marker => marker.setMap(null));
+    leafletMarkers.forEach(marker => marker.remove());
     const newMarkers: any[] = [];
-    const mapBounds = new google.maps.LatLngBounds();
-    let hasValidPoints = false;
+    const points: any[] = [];
 
-    // 1. Loop results and create Google Map Markers
-    results.forEach(place => {
+    // Custom aesthetic marker creator helper
+    const createHtmlIcon = (color: string, text?: string) => {
+      return L.divIcon({
+        html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 11px; font-family: sans-serif;">
+          ${text || ''}
+        </div>`,
+        className: '',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+    };
+
+    // 1. Loop results and create Map Markers
+    results.forEach((place, idx) => {
       if (place.lat && place.lng) {
-        const marker = new google.maps.Marker({
-          position: { lat: place.lat, lng: place.lng },
-          map: mapInstance,
-          title: place.name,
-          icon: {
-            path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-            scale: 5,
-            fillColor: '#4f46e5', // Brand Indigo
-            fillOpacity: 0.9,
-            strokeWeight: 1.5,
-            strokeColor: '#ffffff'
-          }
-        });
+        const markerIcon = createHtmlIcon('#4f46e5', (idx + 1).toString());
+        const marker = L.marker([place.lat, place.lng], { icon: markerIcon }).addTo(leafletMap);
 
-        // Add custom visual InfoWindow popups
-        marker.addListener('click', () => {
-          if (infoWindowInstance) {
-            infoWindowInstance.setContent(`
-              <div style="padding: 6px; font-family: system-ui, sans-serif; max-width: 190px;">
-                <img src="${place.image}" style="width: 100%; height: 85px; object-fit: cover; border-radius: 8px; margin-bottom: 6px;" />
-                <h4 style="margin: 0 0 3px 0; font-size: 12px; font-weight: 800; color: #0f172a;">${place.name}</h4>
-                <p style="margin: 0 0 5px 0; font-size: 10px; color: #64748b;">${place.address}</p>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                  <span style="font-size: 9px; font-weight: bold; background: #fef3c7; color: #d97706; padding: 1.5px 5px; border-radius: 4px;">★ ${place.rating}</span>
-                  <span style="font-size: 9px; font-weight: bold; color: #475569;">${place.price}</span>
-                </div>
-              </div>
-            `);
-            infoWindowInstance.open(mapInstance, marker);
-          }
-        });
+        // Add custom visual popups
+        marker.bindPopup(`
+          <div style="padding: 4px; font-family: system-ui, sans-serif; max-width: 190px;">
+            <img src="${place.image}" style="width: 100%; height: 85px; object-fit: cover; border-radius: 8px; margin-bottom: 6px;" />
+            <h4 style="margin: 0 0 3px 0; font-size: 12px; font-weight: 800; color: #0f172a;">${place.name}</h4>
+            <p style="margin: 0 0 5px 0; font-size: 10px; color: #64748b;">${place.address}</p>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="font-size: 9px; font-weight: bold; background: #fef3c7; color: #d97706; padding: 1.5px 5px; border-radius: 4px;">★ ${place.rating}</span>
+              <span style="font-size: 9px; font-weight: bold; color: #475569;">${place.price}</span>
+            </div>
+          </div>
+        `);
 
         newMarkers.push(marker);
-        const markerPos = marker.getPosition();
-        if (markerPos) mapBounds.extend(markerPos);
-        hasValidPoints = true;
+        points.push([place.lat, place.lng]);
       }
     });
 
     // 2. Render Present Location radar pin on the map
     if (userCoords) {
-      const userPosition = { lat: userCoords.lat, lng: userCoords.lng };
-      const userPosMarker = new google.maps.Marker({
-        position: userPosition,
-        map: mapInstance,
-        title: "Your Location",
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#2563eb', // Indigo blue
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: '#ffffff'
-        }
+      const userMarkerIcon = L.divIcon({
+        html: `<div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background-color: #2563eb; opacity: 0.25; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+          <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #2563eb; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3); z-index: 10;"></div>
+        </div>`,
+        className: '',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
       });
 
+      const userPosMarker = L.marker([userCoords.lat, userCoords.lng], { icon: userMarkerIcon }).addTo(leafletMap);
+      userPosMarker.bindPopup('<strong style="font-family: sans-serif; font-size: 11px;">Your Location</strong>');
       newMarkers.push(userPosMarker);
-      const userPosMarkerPos = userPosMarker.getPosition();
-      if (userPosMarkerPos) mapBounds.extend(userPosMarkerPos);
-      hasValidPoints = true;
+      points.push([userCoords.lat, userCoords.lng]);
 
       // Center viewport smoothly on user present location coordinate
-      mapInstance.panTo(userPosition);
-      mapInstance.setZoom(13);
-    } else if (hasValidPoints) {
+      leafletMap.panTo([userCoords.lat, userCoords.lng]);
+      leafletMap.setZoom(13);
+    } else if (points.length > 0) {
       // Fit maps viewport to cover all results
-      mapInstance.fitBounds(mapBounds);
-      const boundsListener = google.maps.event.addListener(mapInstance, 'idle', () => {
-        if (mapInstance.getZoom() > 14) {
-          mapInstance.setZoom(13);
-        }
-        google.maps.event.removeListener(boundsListener);
-      });
+      leafletMap.fitBounds(points, { padding: [30, 30] });
     }
 
-    setMapMarkers(newMarkers);
-  }, [results, mapInstance, isGoogleMapsReady, userCoords]);
+    setLeafletMarkers(newMarkers);
+  }, [results, leafletMap, isLeafletReady, userCoords]);
 
   const categories = ['All', 'Restaurants', 'Hotels', 'Attractions', 'Events', 'More'];
 
