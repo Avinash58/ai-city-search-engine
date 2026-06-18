@@ -407,27 +407,26 @@ def search_places(q: str, category: Optional[str] = "All", lat: Optional[float] 
         if settings.OPENROUTER_API_KEY:
             try:
                 import json
-                import requests
                 
                 prompt = f"Generate a JSON response containing two fields: 'ai_summary' (a brief 2-3 sentence guide/summary about '{q}') and 'places' (an array of up to 5 places matching '{q}' near latitude {lat}, longitude {lng}). Each place must have: 'name' (string), 'formatted_address' (string), 'rating' (float 3.0-5.0), 'user_ratings_total' (int), 'price_level' (int 1-4), 'types' (array of strings, e.g. ['restaurant'] or ['school']), 'geometry' (object with 'location' containing 'lat' and 'lng' floats). Respond ONLY with valid JSON."
                 
-                response = requests.post(
-                    url="https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                        "Content-Type": "application/json",
-                    },
-                    data=json.dumps({
-                        "model": "meta-llama/llama-3.1-8b-instruct:free",
-                        "messages": [
-                            {
-                                "role": "user",
-                                "content": prompt
-                            }
-                        ]
-                    }),
-                    timeout=20.0
-                )
+                with httpx.Client(timeout=20.0) as client:
+                    response = client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "model": "meta-llama/llama-3.1-8b-instruct:free",
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": prompt
+                                }
+                            ]
+                        }
+                    )
                 
                 if response.status_code == 200:
                     response_data = response.json()
